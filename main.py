@@ -40,20 +40,25 @@ print("Warte auf eingehende Nachrichten...")
 
 # Empfangsschleife
 while True:
-    host, msg = e.recv()
-    if msg:
-        message = msg.decode('utf-8')  # Nachricht dekodieren
-        print(f'Nachricht von {host}: {message}')
-        
-        if "Temperatur" in message:
-            try:
-                temp_str = message.split("Temperatur: ")[1].split("°C")[0]
-                temperature = float(temp_str)
-                control_fan(temperature)  # Lüfter steuern
-            except (IndexError, ValueError) as e:
-                print("Fehler beim Extrahieren der Temperatur:", e)
-        
-        # Speicherbereinigung und Überwachung nur gelegentlich
-        gc.collect()
-        if time.time() % 60 == 0:  # Alle 60 Sekunden
-            print("Freier Speicher:", gc.mem_free())
+    try:
+        host, msg = e.recv()
+        if msg:
+            message = msg.decode('utf-8')  # Nachricht dekodieren
+            print(f'Nachricht von {host}: {message}')
+            
+            if "Temperatur" in message:
+                try:
+                    # Passe das Parsing an, um sowohl "°C" als auch "C" zu behandeln
+                    temp_str = message.split("Temperatur: ")[1].split("C")[0]
+                    temperature = float(temp_str)
+                    control_fan(temperature)  # Lüfter steuern
+                except (IndexError, ValueError) as e:
+                    print("Fehler beim Extrahieren der Temperatur:", e)
+            
+            # Speicherbereinigung und Überwachung nur gelegentlich
+            gc.collect()
+            if time.time() % 60 == 0:  # Alle 60 Sekunden
+                print("Freier Speicher:", gc.mem_free())
+                
+    except Exception as e:
+        print("Fehler im Empfangsprozess:", e)
