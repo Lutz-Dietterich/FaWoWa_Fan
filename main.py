@@ -36,6 +36,18 @@ def control_fan(temperature, min_temp=18, max_temp=22, min_duty=200):
         pwm_fan.duty(speed)
         print(f"Lüftergeschwindigkeit gesetzt auf: {speed} (für Temperatur: {temperature}°C)")
 
+# Funktion zur Steuerung des Lüfters basierend auf Luftfeuchtigkeit und Temperaturbedingungen
+def control_humidity(temperature, humidity, humidity_threshold=60, min_temp=15, max_humidity_duty=102):
+    if humidity > humidity_threshold and temperature >= min_temp:
+        print(f"Luftfeuchtigkeit {humidity}% über Schwellwert bei {temperature}°C. Lüfter für 10 Sekunden auf 10% Leistung.")
+        pwm_fan.duty(max_humidity_duty)  # Setze Duty Cycle auf 10%
+        time.sleep(10)  # Lüfter für 10 Sekunden laufen lassen
+        pwm_fan.duty(0)  # Lüfter ausschalten
+        print("Lüfter ausgeschaltet für 5 Minuten Wartezeit.")
+        time.sleep(300)  # Warte 5 Minuten
+    else:
+        print(f"Keine Regelung notwendig. Luftfeuchtigkeit: {humidity}%, Temperatur: {temperature}°C")
+
 print("Warte auf eingehende Nachrichten...")
 
 # Empfangsschleife
@@ -46,14 +58,22 @@ while True:
             message = msg.decode('utf-8')  # Nachricht dekodieren
             print(f'Nachricht von {host}: {message}')
             
-            if "Temperatur" in message:
+            if "Temperatur" in message and "Luftfeuchtigkeit" in message:
                 try:
-                    # Passe das Parsing an, um sowohl "°C" als auch "C" zu behandeln
+                    # Temperatur und Luftfeuchtigkeit extrahieren
                     temp_str = message.split("Temperatur: ")[1].split("C")[0]
+                    hum_str = message.split("Luftfeuchtigkeit: ")[1].split("%")[0]
                     temperature = float(temp_str)
-                    control_fan(temperature)  # Lüfter steuern
+                    humidity = float(hum_str)
+
+                    # Lüftersteuerung auf Grundlage der Temperatur
+                    control_fan(temperature)
+                    
+                    # Luftfeuchtigkeitssteuerung
+                    control_humidity(temperature, humidity)
+
                 except (IndexError, ValueError) as e:
-                    print("Fehler beim Extrahieren der Temperatur:", e)
+                    print("Fehler beim Extrahieren der Temperatur oder Luftfeuchtigkeit:", e)
             
             # Speicherbereinigung und Überwachung nur gelegentlich
             gc.collect()
