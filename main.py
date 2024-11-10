@@ -43,7 +43,7 @@ def control_humidity(temperature, humidity, humidity_threshold=60, min_temp=15, 
         pwm_fan.duty(max_humidity_duty)  # Setze Duty Cycle auf 10%
         time.sleep(20)  # Lüfter für 20 Sekunden laufen lassen
         pwm_fan.duty(0)  # Lüfter ausschalten
-        print("Lüfter ausgeschaltet für 5 Minuten Wartezeit.")
+        print("Lüfter ausgeschaltet für 3 Minuten Wartezeit.")
         time.sleep(180)  # Warte 3 Minuten
     else:
         print(f"Keine Regelung notwendig. Luftfeuchtigkeit: {humidity}%, Temperatur: {temperature}°C")
