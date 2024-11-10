@@ -37,14 +37,14 @@ def control_fan(temperature, min_temp=18, max_temp=22, min_duty=200):
         print(f"Lüftergeschwindigkeit gesetzt auf: {speed} (für Temperatur: {temperature}°C)")
 
 # Funktion zur Steuerung des Lüfters basierend auf Luftfeuchtigkeit und Temperaturbedingungen
-def control_humidity(temperature, humidity, humidity_threshold=60, min_temp=15, max_humidity_duty=102):
+def control_humidity(temperature, humidity, humidity_threshold=60, min_temp=15, max_humidity_duty=154):
     if humidity > humidity_threshold and temperature >= min_temp:
-        print(f"Luftfeuchtigkeit {humidity}% über Schwellwert bei {temperature}°C. Lüfter für 10 Sekunden auf 10% Leistung.")
+        print(f"Luftfeuchtigkeit {humidity}% über Schwellwert bei {temperature}°C. Lüfter für 20 Sekunden auf 15% Leistung.")
         pwm_fan.duty(max_humidity_duty)  # Setze Duty Cycle auf 10%
-        time.sleep(10)  # Lüfter für 10 Sekunden laufen lassen
+        time.sleep(20)  # Lüfter für 20 Sekunden laufen lassen
         pwm_fan.duty(0)  # Lüfter ausschalten
         print("Lüfter ausgeschaltet für 5 Minuten Wartezeit.")
-        time.sleep(300)  # Warte 5 Minuten
+        time.sleep(180)  # Warte 3 Minuten
     else:
         print(f"Keine Regelung notwendig. Luftfeuchtigkeit: {humidity}%, Temperatur: {temperature}°C")
 
