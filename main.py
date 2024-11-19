@@ -23,6 +23,7 @@ last_humidity_activation = time.time()
 humidity_active = False
 humidity_pause_active = False
 temperature_priority_speed = 0
+humidity_speed = 154  # Standard Duty Cycle für Feuchtigkeitssteuerung (15%)
 
 print("[Systemstart] Warte auf eingehende Nachrichten...")
 
@@ -51,8 +52,8 @@ def control_fan_temperature(temperature, min_temp=18, max_temp=22, min_duty=200)
 # Die Feuchtigkeitssteuerung wird aktiviert, wenn die Temperatur mindestens 15°C erreicht hat
 # Wenn die Temperatur unter 15°C sinkt, bleibt die Feuchtigkeitssteuerung inaktiv, bis die Temperatur wieder mindestens 15,5°C erreicht
 
-def control_fan_humidity(temperature, humidity, humidity_threshold=50, min_temp_activate=15, min_temp_resume=15.5, humidity_duty=154):
-    global last_humidity_activation, humidity_active
+def control_fan_humidity(temperature, humidity, humidity_threshold=50, min_temp_activate=15, min_temp_resume=15.5):
+    global last_humidity_activation, humidity_active, humidity_speed
     current_time = time.time()
 
     print(f"[Luftfeuchtigkeitsregelung] Aktuelle Luftfeuchtigkeit: {humidity}%")
@@ -60,7 +61,7 @@ def control_fan_humidity(temperature, humidity, humidity_threshold=50, min_temp_
     # Aktivierung der Feuchtigkeitssteuerung, wenn die Temperatur mindestens 15°C erreicht hat
     if humidity > humidity_threshold and temperature >= min_temp_activate:
         print(f"[Luftfeuchtigkeitsregelung] Feuchtigkeit über {humidity_threshold}%. Lüfter für Feuchtigkeitssteuerung aktiviert.")
-        pwm_fan.duty(humidity_duty)  # Setze Duty Cycle auf 15% für Feuchtigkeitsregelung
+        humidity_speed = 154  # Setze Duty Cycle auf 15% für Feuchtigkeitsregelung
         last_humidity_activation = current_time
         humidity_active = True  # Feuchtigkeitssteuerung aktiv
     elif temperature < min_temp_activate:
@@ -73,18 +74,12 @@ def control_fan_humidity(temperature, humidity, humidity_threshold=50, min_temp_
         humidity_active = True
 
     # Neue Regelung: Wenn die Temperatur über 17°C und die Luftfeuchtigkeit über 70% ist, setze Lüftergeschwindigkeit auf 25%
-    if temperature > 17 and humidity > 70:
-        pwm_fan.duty(256)  # Setze Duty Cycle auf 25%
-        print(f"[Luftfeuchtigkeitsregelung] Temperatur über 17°C und Feuchtigkeit über 70%. Lüftergeschwindigkeit auf 25% gesetzt.")
+    if temperature > 17 and humidity > 60:
+        humidity_speed = 256  # Setze Duty Cycle auf 25%
+        print(f"[Luftfeuchtigkeitsregelung] Temperatur über 17°C und Feuchtigkeit über 60%. Lüftergeschwindigkeit auf 25% gesetzt.")
     else:
-        pwm_fan.duty(humidity_duty)  # Standard auf 15%
+        humidity_speed = 154  # Standard auf 15%
         print(f"[Luftfeuchtigkeitsregelung] Standard Lüftergeschwindigkeit auf 15% gesetzt.")
-
-    # Entfernen der Pause aus der Feuchtigkeitssteuerung
-    # elif humidity_active and current_time - last_humidity_activation >= 120:
-    #     print("[Luftfeuchtigkeitsregelung] Lüfter für Feuchtigkeitssteuerung ausgeschaltet.")
-    #     last_humidity_activation = current_time
-    #     humidity_active = False
 
 # Hauptschleife
 while True:
@@ -115,16 +110,12 @@ while True:
             # Entscheidung für den Lüfter-Duty-Cycle
             if humidity_active:
                 # Wenn die Feuchtigkeitssteuerung aktiv ist, aber die Temperaturregelung eine höhere Geschwindigkeit benötigt
-                if temperature_priority_speed > 256:
+                if temperature_priority_speed > humidity_speed:
                     pwm_fan.duty(temperature_priority_speed)
                     print(f"[Lüftersteuerung] Temperaturregelung priorisiert. Lüftergeschwindigkeit auf {temperature_priority_speed} gesetzt.")
-                elif temperature > 17 and humidity > 70:
-                    pwm_fan.duty(256)
-                    print(f"[Lüftersteuerung] Temperatur über 17°C und Feuchtigkeit über 70%. Lüftergeschwindigkeit auf 25% gesetzt.")
                 else:
-                    # Feuchtigkeitssteuerung übernimmt bei niedrigerer Temperaturanforderung
-                    pwm_fan.duty(154)
-                    print("[Lüftersteuerung] Feuchtigkeitssteuerung bei 15% aktiv.")
+                    pwm_fan.duty(humidity_speed)
+                    print(f"[Lüftersteuerung] Feuchtigkeitssteuerung aktiv. Lüftergeschwindigkeit auf {humidity_speed} gesetzt.")
             else:
                 # Standardfall: Temperaturregelung hat Priorität
                 pwm_fan.duty(temperature_priority_speed)
